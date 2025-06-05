@@ -29,6 +29,6 @@ def index():
 if __name__ == '__main__':
     # Start serial listener thread
     threading.Thread(target=serial_listener, daemon=True).start()
-import eventlet
-eventlet.monkey_patch()
-socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    import eventlet
+    eventlet.monkey_patch()
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
