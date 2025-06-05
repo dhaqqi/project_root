@@ -1,34 +1,23 @@
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
-import serial
-import threading
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*')
-
-# === Serial Configuration ===
-SERIAL_PORT = 'COM5'
-BAUD_RATE = 9600
-
-def serial_listener():
-    try:
-        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-        while True:
-            line = ser.readline().decode('utf-8').strip()
-            if line:
-#               print(f"[Serial] {line}")
-                socketio.emit('serial_data', {'line': line})
-    except serial.SerialException as e:
-        print(f"Serial error: {e}")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return "Arduino Dashboard Online"
+
+@app.route('/api/data', methods=['POST'])
+def receive_data():
+    content = request.json
+    print(f"Received from forwarder: {content}")
+    socketio.emit('serial_data', content)
+    return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    # Start serial listener thread
-    threading.Thread(target=serial_listener, daemon=True).start()
-    import eventlet
-    eventlet.monkey_patch()
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    socketio.run(app, host='0.0.0.0', port=5000)
