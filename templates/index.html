@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Device Status Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>System Status</h1>
+        <div class="card-grid">
+            <div class="card" id="pressure">Pressure Sensor: <span class="status unknown">UNKNOWN</span></div>
+            <div class="card" id="backup">Backup Pump: <span class="status unknown">UNKNOWN</span></div>
+            <div class="card" id="aerator">Aerator: <span class="status unknown">UNKNOWN</span></div>
+            <div class="card" id="pump">Water Pump: <span class="status unknown">UNKNOWN</span></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const updateStatus = (id, value) => {
+            const el = document.querySelector(`#${id} .status`);
+            el.textContent = value;
+            el.className = 'status ' + value.toLowerCase();
+        };
+
+        const threshold = 30;
+
+        socket.on('serial_data', data => {
+            const line = data.line;
+            const match = line.match(/Pressure Sensor: (\w+), Backup Pump: (\w+), A0 Peaks: (\d+), A1 Peaks: (\d+)/);
+            if (match) {
+                updateStatus('pressure', match[1]);
+                updateStatus('backup', match[2]);
+
+                const a0 = parseInt(match[3]);
+                const a1 = parseInt(match[4]);
+
+                updateStatus('aerator', a0 < threshold ? 'OFF' : 'ON');
+                updateStatus('pump', a1 < threshold ? 'OFF' : 'ON');
+            }
+        });
+    </script>
+</body>
+</html>
